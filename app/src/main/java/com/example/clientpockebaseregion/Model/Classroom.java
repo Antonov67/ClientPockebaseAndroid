@@ -12,4 +12,17 @@ public class Classroom {
 
     @SerializedName("created")
     public String created;
+
+    public Classroom(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "Classroom{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", created='" + created + '\'' +
+                '}';
+    }
 }

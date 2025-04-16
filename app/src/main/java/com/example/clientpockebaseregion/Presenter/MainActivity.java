@@ -8,13 +8,16 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.clientpockebaseregion.Controller.API;
+import com.example.clientpockebaseregion.Controller.SimpleCallback;
 import com.example.clientpockebaseregion.Model.Classroom;
 import com.example.clientpockebaseregion.Model.ResponseClassrooms;
 import com.example.clientpockebaseregion.R;
+import com.example.clientpockebaseregion.service.RetrofitService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +31,12 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
 
     Button addClassBtn, resetClassroomsBtn;
-    EditText classField;
+    EditText classroomField;
     ListView classroomList;
     ArrayAdapter<String> adapter;
     static List<String> classrooms;
-    Retrofit retrofit;
+    RetrofitService service;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,15 +44,15 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+
 
         addClassBtn = findViewById(R.id.addClassroomButton);
         resetClassroomsBtn = findViewById(R.id.resetClassrooms);
         classroomList = findViewById(R.id.classrooms);
-        API api = retrofit.create(API.class);
+        classroomField = findViewById(R.id.editTextClassroom);
+
+        service = new RetrofitService();
+
         classrooms = new ArrayList<>();
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, classrooms);
         classroomList.setAdapter(adapter);
@@ -57,26 +61,32 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                Call<ResponseClassrooms> call = api.getClassrooms();
-                call.enqueue(new Callback<ResponseClassrooms>() {
+                service.getAllClassrooms(new SimpleCallback<ResponseClassrooms>() {
                     @Override
-                    public void onResponse(Call<ResponseClassrooms> call, Response<ResponseClassrooms> response) {
-
-                        if (response.isSuccessful()) {
-                            classrooms.clear();
-                            for (Classroom classroom : response.body().classrooms) {
-                                classrooms.add(classroom.id + " " + classroom.name + " " + classroom.created);
-                            }
-                            adapter.notifyDataSetChanged();
+                    public void load(ResponseClassrooms data) {
+                        classrooms.clear();
+                        for (Classroom c : data.classrooms) {
+                            classrooms.add(c.name + " " + c.created);
                         }
-
-                    }
-                    @Override
-                    public void onFailure(Call<ResponseClassrooms> call, Throwable throwable) {
-
+                        adapter.notifyDataSetChanged();
                     }
                 });
 
+            }
+        });
+
+        addClassBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!classroomField.getText().toString().isEmpty()){
+                    Classroom classroom = new Classroom(classroomField.getText().toString());
+                    service.createClassroom(classroom, new SimpleCallback<Classroom>() {
+                        @Override
+                        public void load(Classroom data) {
+                            Toast.makeText(MainActivity.this, data.toString(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
             }
         });
 
